@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>First Union Inc. | Transfer Money</title>
+  <link rel="stylesheet" href="dashboard.css">
+  <style>
+    .transfer-box {
+      background: #202736;
+      border-radius: 12px;
+      max-width: 420px;
+      margin: 60px auto;
+      padding: 32px 28px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+      color: #fff;
+    }
+    .form-group {
+      margin-bottom: 18px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      color: #b0b8c1;
+      font-size: 0.98em;
+    }
+    .form-group input, .form-group textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 6px;
+      border: 1px solid #2d3545;
+      background: #232b3b;
+      color: #fff;
+      font-size: 1em;
+      outline: none;
+      transition: border 0.2s;
+    }
+    .form-group input:focus, .form-group textarea:focus {
+      border: 1.5px solid #2d6cff;
+    }
+    .continue-btn {
+      width: 100%;
+      padding: 12px 0;
+      background: #2d6cff;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 1.1em;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: background 0.2s;
+    }
+    .continue-btn:hover {
+      background: #1a4db8;
+    }
+    .edit-btn, .back-btn {
+      display: block;
+      margin: 18px auto 0;
+      background: #232b3b;
+      color: #b0b8c1;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 18px;
+      cursor: pointer;
+      font-size: 0.95em;
+    }
+    .back-btn {
+      margin-bottom: 16px;
+      margin-top: 0;
+    }
+    body {
+      background: #181f2a;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    .amount-input {
+      font-weight: bold;
+      font-size: 1.2em;
+    }
+    .error-message {
+      color: #ff6b6b;
+      margin-top: 5px;
+      font-size: 0.9em;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <button type="button" class="back-btn" onclick="window.location.href='dashboard.html'">&larr; Back to Dashboard</button>
+  <div class="transfer-box">
+    <h2>TRANSFER MONEY</h2>
+    <form id="transferForm">
+      <div class="form-group">
+        <label for="amount">Amount (USD):</label>
+        <input type="number" id="amount" name="amount" class="amount-input" placeholder="50000" required>
+        <div id="amountError" class="error-message">Transfer limit is $50,000 per transaction</div>
+      </div>
+      <div class="form-group">
+        <label for="bankName">Bank name:</label>
+        <input type="text" id="bankName" name="bankName" required>
+      </div>
+      <div class="form-group">
+        <label for="accountNumber">Account Number:</label>
+        <input type="text" id="accountNumber" name="accountNumber" required>
+      </div>
+      <div class="form-group">
+        <label for="accountHolder">Account holder:</label>
+        <input type="text" id="accountHolder" name="accountHolder" required>
+      </div>
+      <div class="form-group">
+        <label for="description">Description (optional):</label>
+        <textarea id="description" name="description" rows="2"></textarea>
+      </div>
+      <button type="submit" class="continue-btn">Continue to next step</button>
+      <button type="button" class="edit-btn">Edit</button>
+    </form>
+  </div>
+ <script>
+  const TRANSFER_LIMIT = 50000; // $50,000 limit
+
+  function isValidAccountNumber(num) {
+    return /^\d{10,12}$/.test(num);
+  }
+
+  // Check amount against transfer limit
+  function validateAmount(amount) {
+    return amount <= TRANSFER_LIMIT;
+  }
+
+  document.getElementById('transferForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const amountInput = document.getElementById('amount');
+    const amount = parseFloat(amountInput.value);
+    const bankName = document.getElementById('bankName').value.trim();
+    const accountNumber = document.getElementById('accountNumber').value.trim();
+    const accountHolder = document.getElementById('accountHolder').value.trim();
+    const description = document.getElementById('description').value.trim();
+    const errorElement = document.getElementById('amountError');
+
+    // Reset error display
+    errorElement.style.display = 'none';
+    
+    // Validate amount
+    if (isNaN(amount) || amount <= 0) {
+      alert('Please enter a valid amount.');
+      return;
+    }
+    
+    if (!validateAmount(amount)) {
+      errorElement.style.display = 'block';
+      amountInput.focus();
+      return;
+    }
+
+    if (!isValidAccountNumber(accountNumber)) {
+      alert('Account number must be 10-12 digits.');
+      return;
+    }
+
+    // Create transaction object
+    const transaction = {
+      code: 'TRF/' + Math.random().toString(36).substr(2, 8).toUpperCase(),
+      date: new Date().toLocaleString(),
+      desc: `Transfer to ${accountHolder} (${bankName})${description ? ': ' + description : ''}`,
+      amount: `-$${amount} USD`,
+      type: 'debit',
+      status: 'Completed'
+    };
+
+    // Save to localStorage
+    let transactions = JSON.parse(localStorage.getItem('transactions') || '[]');
+    transactions.unshift(transaction); // add to top
+    localStorage.setItem('transactions', JSON.stringify(transactions));
+
+    // Deduct from balance in localStorage
+    let balance = parseFloat(localStorage.getItem('balance') || '20635944');
+    balance -= amount;
+    localStorage.setItem('balance', balance);
+
+    // Show transfer complete message
+    document.querySelector('.transfer-box').innerHTML = `
+      <h2>Transfer Complete</h2>
+      <p>Your transfer of <b>$${amount.toLocaleString()}</b> to <b>${accountHolder}</b> at <b>${bankName}</b> was successful.</p>
+      <button class="continue-btn" onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
+    `;
+  });
+
+  document.querySelector('.edit-btn').addEventListener('click', function() {
+    alert('Edit functionality not implemented in this demo.');
+  });
+
+  // Add input validation for the amount field
+  document.getElementById('amount').addEventListener('input', function() {
+    const amount = parseFloat(this.value);
+    const errorElement = document.getElementById('amountError');
+    
+    if (!isNaN(amount) && amount > TRANSFER_LIMIT) {
+      errorElement.style.display = 'block';
+    } else {
+      errorElement.style.display = 'none';
+    }
+  });
+</script>
+</body>
+</html>
